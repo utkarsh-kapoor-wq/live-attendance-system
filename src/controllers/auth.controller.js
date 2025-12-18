@@ -1,30 +1,42 @@
-import {Teacher} from "../models/teacher.schema.js"
-import {Student} from "../models/student.schema.js"
+import {User} from "../models/user.schema.js"
 import {hashedPassword} from "../utils/hashPassword.js"
+import bcrypt from "bcrypt"
+import {JWTsession} from "../utils/jwt.js"
 
 
-export const loginHandler = (req,res)=>{
-  const {email,password,role}=req.body;
-  if(!name || !email || !password || !role){
+export const loginHandler = async (req,res)=>{
+  const {email,password}=req.body;
+  if(!email || !password){
     return res.status(400).json({
       "success" : false , 
       "error" : "BAD REQUEST missing required field" 
     })
   }
   try {
-    if (role === "student"){
-      const isStudentExist = await Student.findOne({email:email});
-      bcryp
-      if (isStudentExist){
-        
-    
+      const isUserExist = await User.findOne({email:email});
+      if(!isUserExist){
+        return res.status(404).json({
+          "success" : false, 
+          "error" : "NOT FOUND : student not found"
+        })
       }
-      else{
-        return res.status()
+      const isPassTrue =  await bcrypt.compare(password,isUserExist.password)
+      if (!isPassTrue){
+        return res.status(401).json({
+          "success":false , 
+          "error" : "UNAUTHORIZED : incorrect password"
+        })
       }
-    }
+      
+      const accesstoken = JWTsession(res , isUserExist._id,isUserExist.role)
+      return res.status(200).json({
+        "success" : true , 
+        "data" : {email,accesstoken},
+        "message" : "SCCESS : loggin successfull"
+      })
+
   } catch (e) {
-    
+    console.log(e.message)
   }
  
 }
@@ -39,54 +51,30 @@ export const signupHandler = async (req,res) =>{
     })
   }
   try {
-    
-  
-  if (role === "teacher"){
-    const isTeacherExist = await Teacher.findOne({email : email});
-    if (isTeacherExist){
-      return res.status(409).json({
-        "success" : false, 
-        "error" : "CONFLICT : teacher with this email already exist "
-      })
-    }
-    const hashedpassword = await hashedPassword(password)
-    const teacher = new Teacher({
-      name , 
-      email , 
-      password : hashedpassword 
-    })
-    
-    await teacher.save()
-    return res.status(201).json({
-        "success":true , 
-        "data" : {name , email},
-        "message" : "SUCCESS : new teacher registered "
-      })
-    console.log("teacher successfully registered")
-  }
+      const userExist = await User.findOne({email : email})
+       if (userExist){
+         return res.status(409).json(
+            {
+        "success": false, 
+        "error":"CONFLICT : User with this email already exist"
+            })
+      }
 
-  if (role === "student"){
-    const isStudentExist = await Student.findOne({email : email})
-    if (isStudentExist){
-      return res.status(409).json({
-        "success": false , 
-        "error":"CONFLICT : Student with this email already exist"
-      })
-    }
-     const hashedpassword = await hashedPassword(password)
-        const sudent = new Student({
+        const hashedpassword = await hashedPassword(password)
+        const user = new User({
           name , 
           email , 
-          password : hashedpassword 
+          password : hashedpassword,
+          role
         })
-     await student.save()
+     await user.save()
      return res.status(201).json({
         "success":true , 
-        "data" : {name , email},
+        "data" : {name , email , role},
         "message" : "SUCCESS : student registered "
       })
   }
-} catch (error) {
+  catch (error) {
    console.error(error.message) 
   }
   
@@ -99,3 +87,4 @@ export const logoutHandler = (req,res) =>{
   })
 }
 
+  

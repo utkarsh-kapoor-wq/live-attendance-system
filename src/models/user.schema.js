@@ -2,7 +2,7 @@ import mongoose from "mongoose"
 
 const schema = mongoose.Schema;
 
-const studentSchema = new schema({
+const userSchema= new schema({
   name : {
     type : String,
     required : true },
@@ -12,8 +12,13 @@ const studentSchema = new schema({
   },
   password : {
     type : String,
-    required : true }
+    required : true },
+  role : {
+    type : String ,
+    enum : ['student','teacher'],
+    required : true
+  }
 }
 )
 
-export const Student = mongoose.model("Student" , studentSchema)
+export const User = mongoose.model("User" , userSchema)
